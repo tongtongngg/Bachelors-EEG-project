@@ -4,17 +4,11 @@ import numpy as np
 from autoreject import AutoReject
 import matplotlib.pyplot as plt
 from mne.preprocessing import ICA
-np.random.seed(1)
-
 
 
 #%% ALL PREPROCESSING FUNCTIONS
 def MappingAndFiltering(scrambled_eeg):
 
-    """
-    Mapping Biosemi to 10-20 system
-    Filtering the raw data
-    """
 
     biosemi_to_10_20_mapping = {'A1': 'Fp1', 'A2': 'AF7', 'A3': 'AF3', 'A4': 'F1', 'A5': 'F3', 'A6': 'F5', 'A7': 'F7', 'A8': 'FT7',
     'A9': 'FC5', 'A10': 'FC3', 'A11': 'FC1', 'A12': 'C1', 'A13': 'C3', 'A14': 'C5', 'A15': 'T7', 'A16': 'TP7',
@@ -29,7 +23,7 @@ def MappingAndFiltering(scrambled_eeg):
     scrambled_eeg.rename_channels(biosemi_to_10_20_mapping)
 
 
-    #Plot Montage
+    #set Montage
     scrambled_eeg.set_montage('standard_1020')
     print("Updated Channel Names:", scrambled_eeg.ch_names)
 
@@ -105,7 +99,7 @@ def Epoching(SEFiltered):
     epochs = mne.Epochs(SEFiltered, events=events_renamed, event_id=trigger_mapping, tmin=tmin, tmax=tmax, baseline=None, preload=True)
 
     #plot epochs
-    epochs.plot(events=events_renamed, n_epochs=4, show=True)
+    #epochs.plot(events=events_renamed, n_epochs=3, show=True)
     return epochs
 
 
@@ -143,12 +137,24 @@ def Autoreject(epochs):
     ar = AutoReject()
     ar.fit(epochs)
     reject_log = ar.get_reject_log(epochs)
+    #epochs_clean = ar.transform(epochs)
 
-
-    #Plot the rejected epochs
+    ##Plot the rejected epochs
     #Drop bad epochs manually using the reject_log
     reject_log.plot_epochs(epochs)
     epochs.drop(reject_log.bad_epochs)
+
+    #n_epochs_before = len(epochs)
+
+    # Assuming 'epochs_clean' is the result after applying AutoReject
+    #n_epochs_after = len(epochs_clean)
+
+    # Calculate the number of dropped epochs
+    #n_epochs_dropped = n_epochs_before - n_epochs_after
+
+    #print(f"Number of epochs before AutoReject: {n_epochs_before}")
+    #print(f"Number of epochs after AutoReject: {n_epochs_after}")
+    #print(f"Number of epochs dropped: {n_epochs_dropped}")
 
     return epochs
 
@@ -182,7 +188,7 @@ def CAvgRef(epochs):
 
 
 def PerformICA(AVGSEF):
-    ica = ICA(n_components=32, method = 'fastica', max_iter="auto", random_state=97)
+    ica = ICA(n_components=32, method = 'infomax', max_iter="auto", random_state=97)
     ica.fit(AVGSEF)
 
     explained_var_ratio = ica.get_explained_variance_ratio(AVGSEF)
@@ -202,66 +208,16 @@ def PlotICA(ica, AVGSEF, ICAPicks):
     return None
 
 
-#%% Main ____________________________________________________________________________________________________________________________
-
-"""
-Main
-"""
-"""
-def main():
-    # Load BDF file
-    bdf_file_path = 'subj_07_070223_task.bdf'
-
-    Raw_eeg = mne.io.read_raw_bdf(bdf_file_path, include=['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16', 'A17', 'A18', 'A19', 'A20', 
-                                                  'A21', 'A22', 'A23', 'A24', 'A25', 'A26', 'A27', 'A28', 'A29', 'A30', 'A31', 'A32', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 
-                                                  'B7', 'B8', 'B9', 'B10', 'B11', 'B12', 'B13', 'B14', 'B15', 'B16', 'B17', 'B18', 'B19', 'B20', 'B21', 'B22', 'B23', 'B24', 
-                                                  'B25', 'B26', 'B27', 'B28', 'B29', 'B30', 'B31', 'B32', 'Status'], preload=True)
-    print("done reading")
-
-    # Get filtered data
-    FilteredData = MappingAndFiltering(Raw_eeg)
-    del Raw_eeg
-
-    # Epoch the data
-    InitialEpochs = Epoching(FilteredData)
-
-    # Downsample
-    InitialEpochs = Downsample(InitialEpochs)
-
-    # Inspect channels for bad channels
-    PlotChannels(InitialEpochs)
-
-    # Reject trails using autoreject
-    CleanEpochs = Autoreject(InitialEpochs)
-    del InitialEpochs
-
-    # Common average reference and perform ICA
-    CARepochs = CAvgRef(CleanEpochs)
-    del CleanEpochs
-
-    FittetICA = PerformICA(CARepochs)
-
-    #List of the motor components to inspect
-    ICAPicks = []
-    PlotICA(FittetICA, CARepochs, ICAPicks)
-
-if __name__ == "__main__":
-    main()
-"""
-
-
-#For interactive run_________________________________________________________________________________________________________
-
-
 
 #%% Load BDF file
-bdf_file_path = 'subj_07_070223_task.bdf'
+bdf_file_path = 'Data\subj_40_230223_task.bdf'
 
 Raw_eeg = mne.io.read_raw_bdf(bdf_file_path, include=['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16', 'A17', 'A18', 'A19', 'A20', 
                                                   'A21', 'A22', 'A23', 'A24', 'A25', 'A26', 'A27', 'A28', 'A29', 'A30', 'A31', 'A32', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 
                                                   'B7', 'B8', 'B9', 'B10', 'B11', 'B12', 'B13', 'B14', 'B15', 'B16', 'B17', 'B18', 'B19', 'B20', 'B21', 'B22', 'B23', 'B24', 
                                                   'B25', 'B26', 'B27', 'B28', 'B29', 'B30', 'B31', 'B32', 'Status'], preload=True)
 print("done reading")
+
 
 #%%Get filtered data
 FilteredData = MappingAndFiltering(Raw_eeg)
@@ -274,8 +230,18 @@ InitialEpochs = Epoching(FilteredData)
 InitialEpochs = Downsample(InitialEpochs)
 
 #%% Inspect channels for bad channels
-PlotChannels(InitialEpochs)
-del FilteredData
+InitialEpochs.plot_psd(fmax=50)
+plt.show()
+
+
+#%%
+#InitialEpochs.info['bads'] = ['PO3']  # Temporarily set to only include target bad channel
+#InitialEpochs.interpolate_bads(reset_bads=True)
+#InitialEpochs.plot_psd(fmax=50)
+#plt.show()
+#PlotChannels(InitialEpochs)
+#del FilteredData
+
 
 #%% Reject trails using autoreject
 CleanEpochs = Autoreject(InitialEpochs)
@@ -289,13 +255,16 @@ CARepochs.info
 FittetICA = PerformICA(CARepochs)
 
 #%%List of the motor components to inspect
-ICAPicks = [7,8,9,22]
+ICAPicks = [2,6]
 PlotICA(FittetICA, CARepochs, ICAPicks)
 
 
 
 # %% Save the cleaned data and ICA
-CARepochs.save('cleaned_data_epochs.fif',overwrite=True)
-FittetICA.save('fitted_ica-ica.fif')
+CARepochs.save('cleaned_data_epochs_39.fif',overwrite=True)
+FittetICA.save('ICAsub39infomax-ica.fif')
+
+
+
 
 # %%
